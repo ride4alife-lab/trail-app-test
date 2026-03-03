@@ -233,7 +233,16 @@ document.getElementById('closeProfile').onclick = ()=>{
     if(currentPopup){ currentPopup.remove(); }
 };
 
-map.on('load', ()=>{
+// Auto-fit map to all trails
+const bounds = new mapboxgl.LngLatBounds();
+
+data.features.forEach(feature => {
+    feature.geometry.coordinates.forEach(coord => {
+        bounds.extend([coord[0], coord[1]]);
+    });
+});
+
+map.fitBounds(bounds, { padding: 40 });
 
 fetch('map.geojson?v=11')
 .then(r=>r.json())
@@ -389,4 +398,5 @@ options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:fals
 </script>
 
 </body>
+
 </html>
