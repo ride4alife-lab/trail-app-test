@@ -29,10 +29,7 @@ body { margin:0; font-family:Arial; }
     max-width:80vw;
     transition:transform 0.2s;
 }
-
-#sidebar.hidden {
-    transform:translateX(-110%);
-}
+#sidebar.hidden { transform:translateX(-110%); }
 
 #toggleSidebar {
     position:absolute;
@@ -47,40 +44,20 @@ body { margin:0; font-family:Arial; }
     font-size:18px;
 }
 
-.trail-item {
-    cursor:pointer;
-    padding:3px 0;
-    white-space:nowrap;
-}
+.trail-item { cursor:pointer; padding:3px 0; white-space:nowrap; }
 
-/* Legend */
 .legend-row {
     display:flex;
     align-items:center;
     gap:6px;
     margin-top:4px;
 }
-
 .symbol { width:14px; height:14px; display:inline-block; }
 .symbol.easy { background:#2ecc71; border-radius:50%; }
 .symbol.intermediate { background:#0074D9; }
 .symbol.expert { background:#777777; transform:rotate(45deg); }
+.symbol.extreme { background:#000; }
 
-.symbol.extreme { position:relative; }
-.symbol.extreme::before,
-.symbol.extreme::after {
-    content:"";
-    position:absolute;
-    width:10px;
-    height:10px;
-    background:#000;
-    transform:rotate(45deg);
-    top:2px;
-}
-.symbol.extreme::before { left:0; }
-.symbol.extreme::after { left:5px; }
-
-/* Badge */
 .badge {
     display:inline-block;
     padding:2px 6px;
@@ -90,7 +67,6 @@ body { margin:0; font-family:Arial; }
     margin-top:4px;
 }
 
-/* GPS buttons */
 .gps-btn {
     position:absolute;
     right:10px;
@@ -102,16 +78,10 @@ body { margin:0; font-family:Arial; }
     font-size:14px;
     z-index:3;
 }
-
 #centerBtn { top:10px; }
 #followBtn { top:50px; }
+.gps-btn.active { background:#0074D9; color:white; }
 
-.gps-btn.active {
-    background:#0074D9;
-    color:white;
-}
-
-/* Profile */
 #profileContainer {
     position:fixed;
     left:0;
@@ -123,7 +93,6 @@ body { margin:0; font-family:Arial; }
     display:none;
     z-index:999;
 }
-
 #profileHeader {
     display:flex;
     justify-content:space-between;
@@ -131,7 +100,6 @@ body { margin:0; font-family:Arial; }
     border-bottom:1px solid #ddd;
     font-size:14px;
 }
-
 #closeProfile {
     background:none;
     border:none;
@@ -147,9 +115,7 @@ body { margin:0; font-family:Arial; }
 <div id="sidebar">
 <b>Trails</b>
 <div id="trailList"></div>
-
 <hr>
-
 <b>Difficulty</b>
 <div class="legend-row"><span class="symbol easy"></span> Easy</div>
 <div class="legend-row"><span class="symbol intermediate"></span> Intermediate</div>
@@ -163,11 +129,11 @@ body { margin:0; font-family:Arial; }
 <div id="map"></div>
 
 <div id="profileContainer">
-    <div id="profileHeader">
-        <span id="profileInfo">Elevation Profile</span>
-        <button id="closeProfile">✕</button>
-    </div>
-    <canvas id="profileChart"></canvas>
+<div id="profileHeader">
+<span id="profileInfo">Elevation Profile</span>
+<button id="closeProfile">✕</button>
+</div>
+<canvas id="profileChart"></canvas>
 </div>
 
 <script>
@@ -179,84 +145,70 @@ let currentPopup = null;
 let followMode = false;
 
 const difficultyColors = {
-    easy: '#2ecc71',
-    intermediate: '#0074D9',
-    expert: '#777777',
-    extreme: '#000000'
+easy:'#2ecc71',
+intermediate:'#0074D9',
+expert:'#777777',
+extreme:'#000000'
 };
 
 function normalizeDifficulty(value){
-    const d = (value || '').toString().toLowerCase();
-    if (d.includes('easy')) return 'easy';
-    if (d.includes('intermediate')) return 'intermediate';
-    if (d.includes('expert') || d.includes('advanced')) return 'expert';
-    if (d.includes('extreme')) return 'extreme';
-    return 'intermediate';
+const d=(value||'').toLowerCase();
+if(d.includes('easy')) return 'easy';
+if(d.includes('intermediate')) return 'intermediate';
+if(d.includes('expert')||d.includes('advanced')) return 'expert';
+if(d.includes('extreme')) return 'extreme';
+return 'intermediate';
 }
 
 const map = new mapboxgl.Map({
-    container:'map',
-    style:'mapbox://styles/mapbox/outdoors-v12',
-    center:[-105.0633,39.9223],
-    zoom:14
+container:'map',
+style:'mapbox://styles/mapbox/outdoors-v12'
 });
 
 /* Sidebar toggle */
-document.getElementById('toggleSidebar').onclick = () =>
-    document.getElementById('sidebar').classList.toggle('hidden');
-
-/* GPS */
-const geo = new mapboxgl.GeolocateControl({
-    positionOptions:{ enableHighAccuracy:true },
-    trackUserLocation:true,
-    showUserHeading:true
-});
-map.addControl(geo);
-
-document.getElementById('centerBtn').onclick = () => geo.trigger();
-
-document.getElementById('followBtn').onclick = function(){
-    followMode = !followMode;
-    this.classList.toggle('active', followMode);
+document.getElementById('toggleSidebar').onclick=()=>{
+document.getElementById('sidebar').classList.toggle('hidden');
 };
 
-geo.on('geolocate', e=>{
-    if(followMode){
-        map.easeTo({center:[e.coords.longitude, e.coords.latitude]});
-    }
+/* GPS */
+const geo=new mapboxgl.GeolocateControl({
+positionOptions:{enableHighAccuracy:true},
+trackUserLocation:true,
+showUserHeading:true
+});
+map.addControl(geo);
+document.getElementById('centerBtn').onclick=()=>geo.trigger();
+document.getElementById('followBtn').onclick=function(){
+followMode=!followMode;
+this.classList.toggle('active',followMode);
+};
+geo.on('geolocate',e=>{
+if(followMode){
+map.easeTo({center:[e.coords.longitude,e.coords.latitude]});
+}
 });
 
 /* Close profile */
-document.getElementById('closeProfile').onclick = ()=>{
-    document.getElementById('profileContainer').style.display='none';
-    map.setFilter('trail-highlight',['==','trailnumber','']);
-    if(currentPopup){ currentPopup.remove(); }
+document.getElementById('closeProfile').onclick=()=>{
+document.getElementById('profileContainer').style.display='none';
+map.setFilter('trail-highlight',['==','trailnumber','']);
+if(currentPopup) currentPopup.remove();
 };
 
-// Auto-fit map to all trails
-const bounds = new mapboxgl.LngLatBounds();
-
-data.features.forEach(feature => {
-    feature.geometry.coordinates.forEach(coord => {
-        bounds.extend([coord[0], coord[1]]);
-    });
-});
-
-map.fitBounds(bounds, { padding: 40 });
-
-fetch('map.geojson?v=11')
+map.on('load',()=>{
+fetch('map.geojson?v=1')
 .then(r=>r.json())
 .then(data=>{
 
-fullGeoJSON = data;
+fullGeoJSON=data;
 
 data.features.forEach(f=>{
-    f.properties._diffNorm = normalizeDifficulty(f.properties.traildifficulty);
+f.properties._diffNorm=normalizeDifficulty(f.properties.traildifficulty);
 });
 
 map.addSource('trails',{type:'geojson',data});
 
-/* Lines */
+/* Trail lines */
 map.addLayer({
 id:'trail-lines',
 type:'line',
@@ -295,20 +247,29 @@ paint:{'line-width':8,'line-color':'#FFD700'},
 filter:['==','trailnumber','']
 });
 
+/* AUTO FIT TO DATA */
+const bounds=new mapboxgl.LngLatBounds();
+data.features.forEach(feature=>{
+feature.geometry.coordinates.forEach(coord=>{
+bounds.extend([coord[0],coord[1]]);
+});
+});
+map.fitBounds(bounds,{padding:40});
+
 /* Sidebar */
-const list = document.getElementById('trailList');
+const list=document.getElementById('trailList');
 data.features.forEach(f=>{
-    const d=document.createElement('div');
-    d.className='trail-item';
-    d.textContent=f.properties.trailnumber+' – '+f.properties.trailname;
-    d.onclick=()=>selectTrail(f);
-    list.appendChild(d);
+const d=document.createElement('div');
+d.className='trail-item';
+d.textContent=f.properties.trailnumber+' – '+f.properties.trailname;
+d.onclick=()=>selectTrail(f);
+list.appendChild(d);
 });
 
-map.on('click','trail-lines', e=>{
-    const num=e.features[0].properties.trailnumber;
-    const f=fullGeoJSON.features.find(x=>String(x.properties.trailnumber)===String(num));
-    if(f) selectTrail(f);
+map.on('click','trail-lines',e=>{
+const num=e.features[0].properties.trailnumber;
+const f=fullGeoJSON.features.find(x=>String(x.properties.trailnumber)===String(num));
+if(f) selectTrail(f);
 });
 });
 });
@@ -324,7 +285,6 @@ return Math.sqrt(x*x+y*y)*R;
 }
 
 function selectTrail(feature){
-
 const p=feature.properties;
 const color=difficultyColors[p._diffNorm];
 const coords=feature.geometry.coordinates;
@@ -336,10 +296,10 @@ map.setFilter('trail-highlight',
 );
 
 /* Distance + climb */
-let dist=0, climb=0;
+let dist=0,climb=0;
 for(let i=1;i<coords.length;i++){
 dist+=distance(coords[i-1],coords[i]);
-if(coords[i][2] && coords[i-1][2]){
+if(coords[i][2]&&coords[i-1][2]){
 const g=coords[i][2]-coords[i-1][2];
 if(g>0) climb+=g;
 }
@@ -347,56 +307,46 @@ if(g>0) climb+=g;
 
 /* Popup */
 const mid=coords[Math.floor(coords.length/2)];
-
 currentPopup=new mapboxgl.Popup()
 .setLngLat(mid)
 .setHTML(
-'<b>'+p.trailname+' ('+p.trailnumber+')</b><br>' +
-'<span class="badge" style="background:'+color+'">'+p.traildifficulty+'</span><br>' +
+'<b>'+p.trailname+' ('+p.trailnumber+')</b><br>'+
+'<span class="badge" style="background:'+color+'">'+p.traildifficulty+'</span><br>'+
 'Zone: '+p.zonename+' ('+p.zonecode+')'
 )
 .addTo(map);
 
 /* Profile header */
-document.getElementById('profileInfo').innerText =
+document.getElementById('profileInfo').innerText=
 p.trailname+' • '+(dist/1000).toFixed(1)+' km • +'+Math.round(climb)+' m';
 
 showProfile(coords,color);
 }
 
 function showProfile(coords,color){
-
 let dist=0;
 const dists=[];
 const elev=[];
-
 for(let i=0;i<coords.length;i++){
 elev.push(coords[i][2]||0);
 if(i>0) dist+=distance(coords[i-1],coords[i]);
 dists.push((dist/1000).toFixed(2));
 }
-
 document.getElementById('profileContainer').style.display='block';
-
 if(profileChart) profileChart.destroy();
-
 profileChart=new Chart(document.getElementById('profileChart'),{
 type:'line',
-data:{
-labels:dists,
+data:{labels:dists,
 datasets:[{
 data:elev,
 borderColor:color,
 backgroundColor:color+'33',
 fill:true,
 tension:0.1
-}]
-},
+}]},
 options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
 });
 }
 </script>
-
 </body>
-
 </html>
