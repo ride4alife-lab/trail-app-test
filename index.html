@@ -5,6 +5,15 @@
 <title>Trail App</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
+<!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2ecc71">
+
+<!-- iOS PWA -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-192.png">
+
 <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -137,7 +146,7 @@ body { margin:0; font-family:Arial; }
 </div>
 
 <script>
-mapboxgl.accessToken = 'pk.eyJ1IjoibHVuZG9uIiwiYSI6ImNtbTB4eWd3YzAzcDgydnEyNGRwYWViN2YifQ.cdVVhtxFaLP6DWSYnGXn2g';
+mapboxgl.accessToken = 'YOUR_MAPBOX_TOKEN';
 
 let fullGeoJSON;
 let profileChart;
@@ -177,11 +186,14 @@ trackUserLocation:true,
 showUserHeading:true
 });
 map.addControl(geo);
+
 document.getElementById('centerBtn').onclick=()=>geo.trigger();
+
 document.getElementById('followBtn').onclick=function(){
 followMode=!followMode;
 this.classList.toggle('active',followMode);
 };
+
 geo.on('geolocate',e=>{
 if(followMode){
 map.easeTo({center:[e.coords.longitude,e.coords.latitude]});
@@ -196,7 +208,7 @@ if(currentPopup) currentPopup.remove();
 };
 
 map.on('load',()=>{
-fetch('map.geojson?v=1')
+fetch('map.geojson?v=2')
 .then(r=>r.json())
 .then(data=>{
 
@@ -214,7 +226,7 @@ id:'trail-lines',
 type:'line',
 source:'trails',
 paint:{
-'line-width':4,
+'line-width':6,
 'line-color':['match',['get','_diffNorm'],
 'easy','#2ecc71',
 'intermediate','#0074D9',
@@ -224,30 +236,16 @@ paint:{
 }
 });
 
-/* Direction arrows */
-map.addLayer({
-id:'trail-arrows',
-type:'symbol',
-source:'trails',
-layout:{
-'symbol-placement':'line',
-'symbol-spacing':80,
-'icon-image':'triangle-15',
-'icon-size':0.7,
-'icon-rotate':90
-}
-});
-
 /* Highlight */
 map.addLayer({
 id:'trail-highlight',
 type:'line',
 source:'trails',
-paint:{'line-width':8,'line-color':'#FFD700'},
+paint:{'line-width':10,'line-color':'#FFD700'},
 filter:['==','trailnumber','']
 });
 
-/* AUTO FIT TO DATA */
+/* AUTO FIT */
 const bounds=new mapboxgl.LngLatBounds();
 data.features.forEach(feature=>{
 feature.geometry.coordinates.forEach(coord=>{
@@ -266,23 +264,16 @@ d.onclick=()=>selectTrail(f);
 list.appendChild(d);
 });
 
-map.on('click','trail-lines',e=>{
-const num=e.features[0].properties.trailnumber;
-const f=fullGeoJSON.features.find(x=>String(x.properties.trailnumber)===String(num));
-if(f) selectTrail(f);
+/* Mobile-safe tap detection */
+map.on('click', function(e){
+const features = map.queryRenderedFeatures(e.point,{layers:['trail-lines']});
+if (!features.length) return;
+const num = features[0].properties.trailnumber;
+const f = fullGeoJSON.features.find(x=>String(x.properties.trailnumber)===String(num));
+if (f) selectTrail(f);
 });
 });
 });
-
-function distance(a,b){
-const R=6371000;
-const toRad=x=>x*Math.PI/180;
-const dLat=toRad(b[1]-a[1]);
-const dLon=toRad(b[0]-a[0]);
-const x=dLon*Math.cos(toRad((a[1]+b[1])/2));
-const y=dLat;
-return Math.sqrt(x*x+y*y)*R;
-}
 
 function selectTrail(feature){
 const p=feature.properties;
@@ -295,18 +286,8 @@ map.setFilter('trail-highlight',
 ['==',['to-string',['get','trailnumber']],String(p.trailnumber)]
 );
 
-/* Distance + climb */
-let dist=0,climb=0;
-for(let i=1;i<coords.length;i++){
-dist+=distance(coords[i-1],coords[i]);
-if(coords[i][2]&&coords[i-1][2]){
-const g=coords[i][2]-coords[i-1][2];
-if(g>0) climb+=g;
-}
-}
-
-/* Popup */
 const mid=coords[Math.floor(coords.length/2)];
+
 currentPopup=new mapboxgl.Popup()
 .setLngLat(mid)
 .setHTML(
@@ -316,36 +297,12 @@ currentPopup=new mapboxgl.Popup()
 )
 .addTo(map);
 
-/* Profile header */
-document.getElementById('profileInfo').innerText=
-p.trailname+' • '+(dist/1000).toFixed(1)+' km • +'+Math.round(climb)+' m';
-
-showProfile(coords,color);
-}
-
-function showProfile(coords,color){
-let dist=0;
-const dists=[];
-const elev=[];
-for(let i=0;i<coords.length;i++){
-elev.push(coords[i][2]||0);
-if(i>0) dist+=distance(coords[i-1],coords[i]);
-dists.push((dist/1000).toFixed(2));
-}
 document.getElementById('profileContainer').style.display='block';
-if(profileChart) profileChart.destroy();
-profileChart=new Chart(document.getElementById('profileChart'),{
-type:'line',
-data:{labels:dists,
-datasets:[{
-data:elev,
-borderColor:color,
-backgroundColor:color+'33',
-fill:true,
-tension:0.1
-}]},
-options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
-});
+}
+
+/* Register Service Worker */
+if ('serviceWorker' in navigator) {
+navigator.serviceWorker.register('sw.js');
 }
 </script>
 </body>
